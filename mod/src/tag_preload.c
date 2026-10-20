@@ -450,12 +450,23 @@ void tag_hook_lbAudioAx_8002785C(void)
 
 /* ---- Match load --------------------------------------------------------- */
 
+/*
+ * What Fighter_Create would initialise on first use: the fighter's data
+ * archive, effect bank, costume model and animation table.  This is
+ * ftLib_LoadFighterCostume without its last step (ftData_800857E0), which
+ * for Kirby loads costume-0 copy hats for every player's character; versus
+ * mode never runs it and those hats are not necessarily preloaded.  Kirby's
+ * hats are initialised per costume below, as fn_8016E124 does.
+ */
 static void tag_load_kind(int ftkind, int costume)
 {
-    if (ftkind >= 0) {
-        ftLib_LoadFighterCostume((s8) ftkind,
-                                 (u8) tag_clamp_costume(ftkind, costume));
+    if (ftkind < 0) {
+        return;
     }
+    ftData_8008572C(ftkind);
+    efAsync_LoadSync(ftData_UnkBytePerCharacter[ftkind]);
+    ftData_80085820(ftkind, tag_clamp_costume(ftkind, costume));
+    ftData_80085A14(ftkind);
 }
 
 /*

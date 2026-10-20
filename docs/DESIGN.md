@@ -285,9 +285,10 @@ within the sound heap (the same sum `lbAudioAx_80027168` asserts on). A
 character without its bank is not available (an unloaded bank is unsafe).
 
 At match load, everything the engine would initialise lazily on first use is
-done before frame 1 (`ftLib_LoadFighterCostume`, Kirby copy data with
-`Player_80031DA8` for every character x Kirby costume pair), waiting for any
-file still loading. A slot is available only if all of its files are
+done before frame 1 (fighter archive, effects, costume and animation table,
+as `Fighter_Create` would; Kirby copy data with `Player_80031DA8` for every
+character x Kirby costume pair, as `fn_8016E124` does for the primaries),
+waiting for any file still loading. A slot is available only if all of its files are
 registered and its bank fits; anything that is not is shown as `-`.
 
 ## The per-frame manager

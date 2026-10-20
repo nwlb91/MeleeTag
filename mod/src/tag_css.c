@@ -165,6 +165,23 @@ static void tag_css_line(const TagRosterExtras* r, char* out)
 
 static HSD_Text* tag_css_texts[TAG_PORTS];
 
+/*
+ * Texts belong to the scene's text heap, which is rebuilt for every scene.
+ * The OnEnter hook forgets them; as a second guard, a text is only used
+ * while it is still in the current scene's text list.
+ */
+static int tag_css_text_alive(HSD_Text* t)
+{
+    HSD_Text* x;
+
+    for (x = HSD_SisLib_804D7978; x != NULL; x = x->next) {
+        if (x == t) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static void tag_css_create_texts(int doors)
 {
     static char blank[TAG_CSS_WIDTH + 1];
@@ -243,6 +260,10 @@ static void tag_css_frame(void)
         char line[TAG_CSS_WIDTH + 8];
         tag_g.css_human[i] = tag_css_doors.doors[i].p_kind == 0;
         if (tag_css_texts[i] == NULL) {
+            continue;
+        }
+        if (!tag_css_text_alive(tag_css_texts[i])) {
+            tag_css_texts[i] = NULL;
             continue;
         }
         tag_css_line(online ? &tag_g.net_local : &tag_g.css[i], line);
