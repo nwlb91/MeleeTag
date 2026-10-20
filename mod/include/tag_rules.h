@@ -240,6 +240,27 @@ int tag_roster_empty(const TagRosterExtras* r);
 int tag_roster_cmp(const TagRosterExtras* a, const TagRosterExtras* b);
 
 /*
+ * Sort rosters into the canonical order (tag_roster_cmp), stable.  perm, if
+ * not NULL, is permuted alongside (pass the identity to learn where each
+ * input roster went).
+ */
+void tag_rules_sort_rosters(TagRosterExtras* r, tag_u8* perm, int n);
+/* Hash of a sorted roster list: what each client announces as `preload`. */
+tag_u16 tag_rules_rosters_hash(const TagRosterExtras* sorted, int n);
+
+/*
+ * The netplay verdict, computed identically by every client from the same
+ * announcements (one per human player, in port order).  Returns 1 when tag
+ * is on for the match: every client runs the same build and settings and
+ * preloaded exactly the announced rosters.  plan_index[i] receives the
+ * canonical position of player i's roster, *avail the slots every client
+ * has in memory (bit plan_index*3 + slot - 1).
+ */
+int tag_rules_net_decide(const TagAnnounce* ann, int n, tag_u8 config,
+                         tag_u8* plan_index, tag_u16* avail);
+void tag_announce_extras(const TagAnnounce* a, TagRosterExtras* out);
+
+/*
  * Order in which extra roster entries are offered memory: round robin over
  * rosters, slot 1 of every roster before any slot 2.  `order` receives
  * roster*3 + (slot-1) codes; returns the count.

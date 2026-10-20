@@ -418,6 +418,75 @@ int tag_roster_cmp(const TagRosterExtras* a, const TagRosterExtras* b)
     return 0;
 }
 
+void tag_rules_sort_rosters(TagRosterExtras* r, tag_u8* perm, int n)
+{
+    int i, j;
+
+    for (i = 1; i < n; i++) {
+        for (j = i; j > 0 && tag_roster_cmp(&r[j], &r[j - 1]) < 0; j--) {
+            TagRosterExtras t = r[j];
+            r[j] = r[j - 1];
+            r[j - 1] = t;
+            if (perm != 0) {
+                tag_u8 p = perm[j];
+                perm[j] = perm[j - 1];
+                perm[j - 1] = p;
+            }
+        }
+    }
+}
+
+tag_u16 tag_rules_rosters_hash(const TagRosterExtras* sorted, int n)
+{
+    tag_u32 h = 2166136261u;
+    int i;
+
+    for (i = 0; i < n; i++) {
+        h = tag_hash32(h, tag_roster_hash(&sorted[i]));
+    }
+    return (tag_u16) (h ^ (h >> 16));
+}
+
+void tag_announce_extras(const TagAnnounce* a, TagRosterExtras* out)
+{
+    int k;
+    for (k = 0; k < 3; k++) {
+        out->ckind[k] = a->ckind[k];
+        out->costume[k] = a->ckind[k] == TAG_CKIND_NONE ? 0 : a->costume[k];
+    }
+}
+
+int tag_rules_net_decide(const TagAnnounce* ann, int n, tag_u8 config,
+                         tag_u8* plan_index, tag_u16* avail)
+{
+    TagRosterExtras r[8];
+    tag_u8 perm[8];
+    tag_u16 h;
+    int i, ok = 1;
+
+    if (n < 1 || n > 8) {
+        return 0;
+    }
+    *avail = 0x0FFF;
+    for (i = 0; i < n; i++) {
+        tag_announce_extras(&ann[i], &r[i]);
+        perm[i] = (tag_u8) i;
+        *avail &= ann[i].avail;
+        if (ann[i].config != config) {
+            ok = 0;
+        }
+    }
+    tag_rules_sort_rosters(r, perm, n);
+    h = tag_rules_rosters_hash(r, n);
+    for (i = 0; i < n; i++) {
+        plan_index[perm[i]] = (tag_u8) i;
+        if (ann[i].preload != h) {
+            ok = 0;
+        }
+    }
+    return ok;
+}
+
 int tag_rules_admission_order(int rosters, tag_u8* order)
 {
     int n = 0;

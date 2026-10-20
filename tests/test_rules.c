@@ -416,6 +416,131 @@ static void test_rosters(void)
     CHECK(tag_rules_next_costume(3, 4) == 0);
 }
 
+static TagRosterExtras roster(int a, int b, int c)
+{
+    TagRosterExtras r;
+    r.ckind[0] = (tag_u8) a;
+    r.ckind[1] = (tag_u8) b;
+    r.ckind[2] = (tag_u8) c;
+    r.costume[0] = r.costume[1] = r.costume[2] = 0;
+    return r;
+}
+
+/* What a client announces given its own roster and what it preloaded. */
+static TagAnnounce announce(TagRosterExtras own, const TagRosterExtras* pre,
+                            int n, tag_u16 avail, tag_u8 config)
+{
+    TagRosterExtras sorted[4];
+    TagAnnounce a;
+    int i;
+
+    for (i = 0; i < n; i++) {
+        sorted[i] = pre[i];
+    }
+    tag_rules_sort_rosters(sorted, 0, n);
+    memset(&a, 0, sizeof(a));
+    a.version = TAG_NET_VERSION;
+    a.config = config;
+    for (i = 0; i < 3; i++) {
+        a.ckind[i] = own.ckind[i];
+        a.costume[i] = own.costume[i];
+    }
+    a.preload = tag_rules_rosters_hash(sorted, n);
+    a.avail = avail;
+    return a;
+}
+
+static void test_net_verdict(void)
+{
+    TagRosterExtras ra = roster(2, 0x13, TAG_CKIND_NONE);  /* Fox, Sheik */
+    TagRosterExtras rb = roster(0x14, 0x0E, 4);             /* Falco, ICs, Kirby */
+    TagRosterExtras none = roster(TAG_CKIND_NONE, TAG_CKIND_NONE, TAG_CKIND_NONE);
+    TagAnnounce ann[2];
+    tag_u8 idx_a[2], idx_b[2];
+    tag_u16 av_a, av_b;
+    int ok_a, ok_b;
+
+    /*
+     * First match against a new opponent: each client only knows its own
+     * roster (the opponent's learned roster is empty), so the preload
+     * hashes cannot match and both clients turn tag off.
+     */
+    {
+        TagRosterExtras pre_a[2], pre_b[2];
+        pre_a[0] = ra;
+        pre_a[1] = none;
+        pre_b[0] = rb;
+        pre_b[1] = none;
+        ann[0] = announce(ra, pre_a, 2, 0x0FFF, 7);
+        ann[1] = announce(rb, pre_b, 2, 0x0FFF, 7);
+        ok_a = tag_rules_net_decide(ann, 2, 7, idx_a, &av_a);
+        ok_b = tag_rules_net_decide(ann, 2, 7, idx_b, &av_b);
+        CHECK(!ok_a && !ok_b);
+    }
+    /*
+     * Second match: both learned the other's roster from the announcements
+     * and preloaded it; port order differs between the two clients' views
+     * of who is "own", but the verdict is computed from the same port-
+     * ordered announcements on both clients.
+     */
+    {
+        TagRosterExtras pre_a[2], pre_b[2];
+        pre_a[0] = ra;
+        pre_a[1] = rb;
+        pre_b[0] = rb;
+        pre_b[1] = ra;
+        /* Client A could load everything; client B is missing A's slot 2. */
+        ann[0] = announce(ra, pre_a, 2, 0x0FFF, 7);
+        ann[1] = announce(rb, pre_b, 2, 0x0FFF & ~0, 7);
+        {
+            /* B's view: plan index of ra in the sorted order. */
+            TagRosterExtras s[2];
+            tag_u8 perm[2] = { 0, 1 };
+            int ra_index;
+            s[0] = ra;
+            s[1] = rb;
+            tag_rules_sort_rosters(s, perm, 2);
+            ra_index = perm[0] == 0 ? 0 : 1;
+            ann[1].avail = (tag_u16) (0x0FFF & ~(1u << (ra_index * 3 + 1)));
+        }
+        ok_a = tag_rules_net_decide(ann, 2, 7, idx_a, &av_a);
+        ok_b = tag_rules_net_decide(ann, 2, 7, idx_b, &av_b);
+        CHECK(ok_a && ok_b);
+        CHECK(av_a == av_b);
+        CHECK(idx_a[0] == idx_b[0] && idx_a[1] == idx_b[1]);
+        CHECK(idx_a[0] != idx_a[1]);
+        /* Player A's slot 2 (Sheik) is off for both; everything else on. */
+        CHECK(!((av_a >> (idx_a[0] * 3 + 1)) & 1));
+        CHECK((av_a >> (idx_a[0] * 3 + 0)) & 1);
+        CHECK((av_a >> (idx_a[1] * 3 + 2)) & 1);
+    }
+    /* Different build or settings on one client: off for everyone. */
+    {
+        TagRosterExtras pre[2];
+        pre[0] = ra;
+        pre[1] = rb;
+        ann[0] = announce(ra, pre, 2, 0x0FFF, 7);
+        ann[1] = announce(rb, pre, 2, 0x0FFF, 8);
+        CHECK(!tag_rules_net_decide(ann, 2, 7, idx_a, &av_a));
+        CHECK(!tag_rules_net_decide(ann, 2, 8, idx_b, &av_b));
+    }
+    /* A roster changed since last match: off, and learned for next time. */
+    {
+        TagRosterExtras pre_a[2];
+        TagRosterExtras rb2 = roster(0x14, 0x0E, 5);
+        pre_a[0] = ra;
+        pre_a[1] = rb; /* stale */
+        ann[0] = announce(ra, pre_a, 2, 0x0FFF, 7);
+        {
+            TagRosterExtras pre_b[2];
+            pre_b[0] = rb2;
+            pre_b[1] = ra;
+            ann[1] = announce(rb2, pre_b, 2, 0x0FFF, 7);
+        }
+        CHECK(!tag_rules_net_decide(ann, 2, 7, idx_a, &av_a));
+    }
+}
+
 int main(void)
 {
     test_dpad();
@@ -428,6 +553,7 @@ int main(void)
     test_jumps();
     test_codec();
     test_rosters();
+    test_net_verdict();
     printf("test_rules: %d checks, %d failures\n", checks, failures);
     return failures != 0;
 }

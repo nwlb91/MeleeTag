@@ -124,7 +124,6 @@ typedef struct TagGlobals {
     /* Netplay transmit. */
     u8 net_tx;
     u8 net_msg[TAG_NET_BYTES];
-    u32 net_phase;
     /* CSS. */
     u8 css_human[TAG_PORTS];
     HSD_Text* css_text;
@@ -151,8 +150,7 @@ void tag_preload_lazy_init(TagMatch* m);
 u16 tag_preload_plan_hash(void);
 void tag_preload_request_refresh(void);
 
-/* tag_match.c */
-TagMatch* tag_match_current(void);
+/* tag_switch.c (also used by tag_match.c) */
 int tag_fighter_count(void);
 
 /* tag_switch.c */

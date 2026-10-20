@@ -78,7 +78,8 @@ payload: $(BUILD)/payload.bin check-slippi
 check-slippi: $(BUILD)/payload.sites
 	$(PYTHON) tools/slippi_conflicts.py $(BUILD)/payload.sites \
 		third_party/slippi-ssbm-asm/Output/Netplay/GALE01r2.ini \
-		third_party/slippi-ssbm-asm/Output/Playback/GALE01r2.ini
+		third_party/slippi-ssbm-asm/Output/Playback/GALE01r2.ini \
+		third_party/slippi-ssbm-asm/Output/Bootloader/bootloader.gct
 
 PATCHER_SRCS := patcher/patcher.c patcher/iso.c patcher/dol.c patcher/sha1.c
 PATCHER_HDRS := $(wildcard patcher/*.h) $(BUILD)/payload.h

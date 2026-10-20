@@ -269,7 +269,7 @@ static int tag_try_admit(TagPlanCtx* c, int ck, int costume)
  */
 static void tag_plan_rosters(struct GameCache* gc)
 {
-    int i, j;
+    int i;
 
     tag_g.plan_rosters = 0;
     if (tag_scene_major() == TAG_MAJOR_ONLINE) {
@@ -279,13 +279,7 @@ static void tag_plan_rosters(struct GameCache* gc)
         for (i = 0; i < tag_g.learned_count && n < TAG_PORTS; i++) {
             r[n++] = tag_g.learned[i];
         }
-        for (i = 1; i < n; i++) {
-            for (j = i; j > 0 && tag_roster_cmp(&r[j], &r[j - 1]) < 0; j--) {
-                TagRosterExtras t = r[j];
-                r[j] = r[j - 1];
-                r[j - 1] = t;
-            }
-        }
+        tag_rules_sort_rosters(r, NULL, n);
         for (i = 0; i < n; i++) {
             tag_g.plan_owner[i] = 0xFF;
         }
@@ -308,13 +302,7 @@ static void tag_plan_rosters(struct GameCache* gc)
 
 u16 tag_preload_plan_hash(void)
 {
-    u32 h = 2166136261u;
-    int i;
-
-    for (i = 0; i < tag_g.plan_rosters; i++) {
-        h = tag_hash32(h, tag_roster_hash(&tag_g.plan_roster[i]));
-    }
-    return (u16) (h ^ (h >> 16));
+    return tag_rules_rosters_hash(tag_g.plan_roster, tag_g.plan_rosters);
 }
 
 static void tag_preload_register(void)

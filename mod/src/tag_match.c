@@ -18,11 +18,6 @@
 
 #define TAG_FEEDBACK_FRAMES 45
 
-TagMatch* tag_match_current(void)
-{
-    return tag_g.match;
-}
-
 static int tag_fighters_paused(void)
 {
     u64* mask = HSD_GObjLibInitData.unk_2;
