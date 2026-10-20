@@ -39,6 +39,7 @@
 #include <melee/ft/ftdata.h>
 #include <melee/ft/ftlib.h>
 #include <melee/ft/ftmetal.h>
+#include <melee/ft/kinds/ftCommon/ftCo_0A01.h>
 #include <melee/ft/kinds/ftCommon/ftCo_DamageFall.h>
 #include <melee/ft/kinds/ftCommon/ftCo_Fall.h>
 #include <melee/ft/kinds/ftCommon/ftCo_HammerWait.h>

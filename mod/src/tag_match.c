@@ -87,7 +87,7 @@ static void tag_player_start(TagMatch* m, int pi)
     tag_net_rx_reset(&p->rx);
     tag_set_slot(&p->slot[TAG_SLOT_PRIMARY], Player_GetPlayerCharacter(pi),
                  Player_GetCostumeId(pi), 1);
-    tag_switch_adopt_primary(p);
+    tag_switch_adopt_primary(m, p);
 
     if (m->netplay) {
         /* Decided once every client has announced (tag_net.c). */

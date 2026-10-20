@@ -310,10 +310,10 @@ int tag_switch_make_resident(TagMatch* m, TagPlayer* p, int k, int limit)
 }
 
 /* The primary slot starts with the fighters the engine created. */
-void tag_switch_adopt_primary(TagPlayer* p)
+void tag_switch_adopt_primary(TagMatch* m, TagPlayer* p)
 {
     TagSlot* s = &p->slot[TAG_SLOT_PRIMARY];
-    StaticPlayer* sp = &tag_player_slots[p->port];
+    StaticPlayer* sp = &tag_player_slots[tag_player_index(m, p)];
     HSD_GObj* front = sp->player_entity[sp->transformed[0]];
     HSD_GObj* back = sp->player_entity[sp->transformed[1]];
     TagFtMapping* map = &tag_ft_mapping[s->ckind];
@@ -597,6 +597,8 @@ static void tag_partner_in(int pi, TagSlot* s, HSD_GObj* leader,
     ft_800849EC(lp, np);
     ftCo_800D105C(nana);
     ftCamera_80076064(np);
+    /* Fresh follower AI, as Fighter_Spawn gives her on a respawn. */
+    ftCo_800A101C(np, Player_GetCpuType(pi), Player_GetCpuLevel(pi), 0);
     if (!lp->input_disabled) {
         ftLib_EnableInput(nana);
     }

@@ -160,7 +160,7 @@ void tag_switch_view(HSD_GObj* gobj, TagFighterView* v);
 int tag_switch_entry(TagPlayer* p);
 int tag_switch_perform(TagMatch* m, TagPlayer* p, int slot, int entry);
 int tag_switch_make_resident(TagMatch* m, TagPlayer* p, int slot, int cap);
-void tag_switch_adopt_primary(TagPlayer* p);
+void tag_switch_adopt_primary(TagMatch* m, TagPlayer* p);
 void tag_switch_sync_form(TagMatch* m, TagPlayer* p);
 void tag_switch_on_stock_lost(TagMatch* m, TagPlayer* p);
 HSD_GObj* tag_slot_front(TagSlot* s);

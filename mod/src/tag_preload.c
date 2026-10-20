@@ -199,9 +199,9 @@ static int tag_free_entries(void)
 /* ---- The plan ----------------------------------------------------------- */
 
 typedef struct TagPlanCtx {
-    u8 chars[TAG_PORTS * TAG_SLOTS]; /* CharacterKinds that will be loaded */
+    u8 chars[8 + TAG_PORTS * 3]; /* CharacterKinds that will be loaded */
     u8 nchars;
-    u8 kirby[TAG_PORTS * TAG_SLOTS]; /* Kirby costumes in play */
+    u8 kirby[8 + TAG_PORTS * 3]; /* Kirby costumes in play */
     u8 nkirby;
 } TagPlanCtx;
 
@@ -226,7 +226,12 @@ static int tag_try_admit(TagPlanCtx* c, int ck, int costume)
     int hats = c->nkirby + (new_kirby ? c->nchars + 1 : 0);
     int i;
 
-    if (tag_free_entries() < 8 + 3 * hats + TAG_ENTRIES_SPARE) {
+    /*
+     * Upper bound on new cache entries: four files per fighter kind and
+     * three per Kirby hat, doubled for two-fighter characters.  The cache
+     * asserts when it runs out of its 80 entries.
+     */
+    if (tag_free_entries() < 8 + 6 * hats + TAG_ENTRIES_SPARE) {
         return 0;
     }
     memcpy(tag_entries_snapshot, preloadCache.entries,

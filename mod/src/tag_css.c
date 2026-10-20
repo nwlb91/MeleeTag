@@ -72,7 +72,7 @@ static int tag_css_hovered(struct TagCssCursor* cur)
 }
 
 /* Fresh flick direction as a slot index (0 Up .. 3 Left) or -1. */
-static int tag_css_flick(int door, int port)
+static int tag_css_flick(int slot, int port)
 {
     HSD_PadStatus* ps = &HSD_PadCopyStatus[port];
     f32 cx = ps->nml_subStickX, cy = ps->nml_subStickY;
@@ -80,7 +80,7 @@ static int tag_css_flick(int door, int port)
     int dir = -1;
 
     if (ax < TAG_FLICK_OFF && ay < TAG_FLICK_OFF) {
-        tag_g.css_prev_flick[door] = TAG_FLICK_NONE;
+        tag_g.css_prev_flick[slot] = TAG_FLICK_NONE;
         return -1;
     }
     if (ax >= TAG_FLICK_ON || ay >= TAG_FLICK_ON) {
@@ -90,10 +90,10 @@ static int tag_css_flick(int door, int port)
             dir = cx > 0 ? 1 : 3;
         }
     }
-    if (dir < 0 || tag_g.css_prev_flick[door] != TAG_FLICK_NONE) {
+    if (dir < 0 || tag_g.css_prev_flick[slot] != TAG_FLICK_NONE) {
         return -1;
     }
-    tag_g.css_prev_flick[door] = (u8) dir;
+    tag_g.css_prev_flick[slot] = (u8) dir;
     return dir;
 }
 
@@ -198,48 +198,56 @@ static void tag_css_create_texts(int doors)
 
 static void tag_css_frame(void)
 {
-    int doors, d, changed = 0;
+    int i, changed = 0;
     int online = tag_scene_major() == TAG_MAJOR_ONLINE;
 
     if (!tag_css_is_versus()) {
         return;
     }
-    doors = tag_css_door_count == 1 ? 1 : TAG_PORTS;
     if (!tag_css_ready) {
-        tag_css_create_texts(doors);
+        tag_css_create_texts(online ? 1 : TAG_PORTS);
     }
-    for (d = 0; d < doors; d++) {
-        struct TagCssCursor* cur = tag_css_cursor[d];
-        TagRosterExtras* r = online ? &tag_g.net_local : &tag_g.css[d];
-        char line[TAG_CSS_WIDTH + 8];
+    /*
+     * One cursor per controller.  Locally the roster belongs to the
+     * controller's port (= its player); online only the local player has
+     * a cursor, and it edits the one local roster.
+     */
+    for (i = 0; i < TAG_PORTS; i++) {
+        struct TagCssCursor* cur = tag_css_cursor[i];
+        TagRosterExtras* r;
         int port, dir;
 
         if (cur == NULL) {
             continue;
         }
-        port = doors == 1 ? tag_css_local_port : cur->port;
-        if (port >= TAG_PORTS) {
+        port = cur->port;
+        if (port >= TAG_PORTS || HSD_PadCopyStatus[port].err != PAD_ERR_NONE) {
             continue;
         }
-        tag_g.css_human[d] = tag_css_doors.doors[d].p_kind == 0;
-        if (HSD_PadCopyStatus[port].err == PAD_ERR_NONE &&
-            (dir = tag_css_flick(d, port)) >= 0)
-        {
-            if (dir == 0) {
-                tag_css_assign(r, 0, -1);
-                tag_css_assign(r, 1, -1);
-                tag_css_assign(r, 2, -1);
-            } else {
-                tag_css_assign(r, dir - 1, tag_css_hovered(cur));
-            }
-            changed = 1;
-            lbAudioAx_800237A8(0xB7, 0x7F, 0x40);
+        r = online ? &tag_g.net_local : &tag_g.css[port];
+        dir = tag_css_flick(port, port);
+        if (dir < 0) {
+            continue;
         }
-        if (tag_css_texts[d] != NULL) {
-            tag_css_line(r, line);
-            line[TAG_CSS_WIDTH] = '\0';
-            HSD_SisLib_803A70A0(tag_css_texts[d], 0, "%s", line);
+        if (dir == 0) {
+            tag_css_assign(r, 0, -1);
+            tag_css_assign(r, 1, -1);
+            tag_css_assign(r, 2, -1);
+        } else {
+            tag_css_assign(r, dir - 1, tag_css_hovered(cur));
         }
+        changed = 1;
+        lbAudioAx_800237A8(0xB7, 0x7F, 0x40);
+    }
+    for (i = 0; i < TAG_PORTS; i++) {
+        char line[TAG_CSS_WIDTH + 8];
+        tag_g.css_human[i] = tag_css_doors.doors[i].p_kind == 0;
+        if (tag_css_texts[i] == NULL) {
+            continue;
+        }
+        tag_css_line(online ? &tag_g.net_local : &tag_g.css[i], line);
+        line[TAG_CSS_WIDTH] = '\0';
+        HSD_SisLib_803A70A0(tag_css_texts[i], 0, "%s", line);
     }
     if (changed) {
         tag_preload_request_refresh();
