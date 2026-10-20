@@ -702,21 +702,20 @@ int tag_switch_perform(TagMatch* m, TagPlayer* p, int k, int entry)
     return 1;
 }
 
-/* A stock was lost: every slot not on screen starts the next stock fresh. */
+/*
+ * A stock was lost: every slot not on screen starts the next stock fresh.
+ * The reset is the engine's own (tag_persist_fresh: death cleanup and
+ * OnDeath), applied when the slot next comes in, after any saved values
+ * are restored, so what vanilla keeps across stocks (G&W's bucket, Luigi's
+ * cyclone state) is kept here too.
+ */
 void tag_switch_on_stock_lost(TagMatch* m, TagPlayer* p)
 {
     int k;
 
     for (k = 0; k < TAG_SLOTS; k++) {
-        TagSlot* s = &p->slot[k];
-        if (k == p->active || s->state != TAG_SLOT_READY) {
-            continue;
-        }
-        if (s->inst[0] != NULL) {
-            s->fresh = 1;
-        } else {
-            /* Not resident: recreate from scratch instead of from saves. */
-            s->saved_valid = 0;
+        if (k != p->active && p->slot[k].state == TAG_SLOT_READY) {
+            p->slot[k].fresh = 1;
         }
     }
     (void) m;
