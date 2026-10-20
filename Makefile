@@ -87,7 +87,7 @@ $(BUILD)/meleetag-patch: $(PATCHER_SRCS) $(PATCHER_HDRS)
 	$(HOST_CC) $(HOST_CFLAGS) -I $(BUILD) -o $@ $(PATCHER_SRCS)
 
 $(BUILD)/meleetag-patch.exe: $(PATCHER_SRCS) $(PATCHER_HDRS)
-	$(MINGW_CC) $(HOST_CFLAGS) -static -I $(BUILD) -o $@ $(PATCHER_SRCS)
+	$(MINGW_CC) $(HOST_CFLAGS) -static -I $(BUILD) -o $@ $(PATCHER_SRCS) -lshell32
 
 patcher: $(BUILD)/meleetag-patch
 windows: $(BUILD)/meleetag-patch.exe
