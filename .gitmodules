@@ -1,0 +1,6 @@
+[submodule "third_party/melee"]
+	path = third_party/melee
+	url = https://github.com/doldecomp/melee.git
+[submodule "third_party/slippi-ssbm-asm"]
+	path = third_party/slippi-ssbm-asm
+	url = https://github.com/project-slippi/slippi-ssbm-asm.git
